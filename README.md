@@ -11,6 +11,15 @@ This project makes it easy to:
 * JUnit Testing
 * Output Testing
 
+## Requirements
+
+If you want to use JUnit to test your student code, you need to use JUnit 4 and you will need the following jar files in your Test folder:
+
+* junit-4.13.jar
+* hamcrest-core-1.3.jar
+
+You can download these files from [The JUnit 4 Repository](https://github.com/junit-team/junit4/wiki/Download-and-Install)
+
 ## Structure of Student Code
 
 If your students wrote their code in the file Foo.java then JEM Grader expects the student files to be stored in the following structure:
@@ -60,10 +69,12 @@ Each student file will be assigned one of the following grades:
 
 ## JUnit Testing
 
-This uses JUnit 4.13 to test student code. You will need to put your UnitTest java file and any starter-code in a folder.
+This uses JUnit 4.13 to test student code. You will need to put your UnitTest java file and any starter-code in a folder. You also need to have the junit and hamcrest jar files in this folder.
 
 ```
 /Path/To/Tests/LabName/FooTest.java
+                      /junit-4.13.jar
+                      /hamcrest-core-1.3.jar
 ```
 
 The `testPath` in this case would be `/Path/To/Tests/LabName`
