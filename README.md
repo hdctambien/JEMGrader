@@ -11,7 +11,11 @@ This project makes it easy to:
 * JUnit Testing
 * Output Testing
 
-## Requirements
+## Usage
+
+All you need to use this project are the jar files from the `/dist` folder, java installed on your machine, and access to the command line.
+
+### JUnit Requirements
 
 If you want to use JUnit to test your student code, you need to use JUnit 4 and you will need the following jar files in your Test folder:
 
@@ -100,6 +104,25 @@ When you grade your student's assignments, several log files can be created in y
 
 * output.log - The output produced by this program (this includes JUnit test data if using JUnitGrader)
 * compile.log - Any compile errors produced by this program (if no compile errors, this file isn't created)
+
+## Building the Project
+
+There are no external dependencies. Just a simple `javac *.java` will compile this.
+
+You can create runnable jar files after you compile the code by creating a file called `Manifest` with the following content
+
+```
+Manifest-Version: 1.0
+Main-Class: JUnitGrader
+```
+
+Then running the following command
+
+```
+jar cvfm JUnitGrader.jar Manifest *.class
+```
+
+If you want to jarify the UILGrader, then just change `JUnitGrader` to `UILGrader` in the Manifest file and the jar command.
 
 ## Licensing
 
