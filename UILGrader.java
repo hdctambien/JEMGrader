@@ -81,10 +81,13 @@ public class UILGrader extends JEMGrader
               {
                 result = "F";
                 break;
-              }//end if
-            }//end for
-          }//end if
-        }//end if
+              }//end if lines are not equal
+            }//end for each line
+          }//end if same number of lines
+          else {
+            result = "F";
+          }//end else different number of lines
+        }//end if there are any lines
       }//end try
       catch(Exception e)
       {
