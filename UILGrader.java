@@ -72,9 +72,10 @@ public class UILGrader extends JEMGrader
           }
 
           // check that they have the same number of lines
-          result = "P";
+          result = "F";
           if(lines.size() == answerLines.size())
           {
+            result = "P";
             for(int i=0; i<lines.size(); i++)
             {
               if(!lines.get(i).equals(answerLines.get(i)))
@@ -84,9 +85,6 @@ public class UILGrader extends JEMGrader
               }//end if lines are not equal
             }//end for each line
           }//end if same number of lines
-          else {
-            result = "F";
-          }//end else different number of lines
         }//end if there are any lines
       }//end try
       catch(Exception e)
