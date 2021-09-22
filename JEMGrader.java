@@ -118,6 +118,10 @@ public abstract class JEMGrader
       File outputLogDest = new File(studentDir.getPath() + File.separator + "output.log");
       Files.deleteIfExists(outputLogDest.toPath());
 
+      // delete old error log
+      File errLogDest = new File(studentDir.getPath() + File.separator + "error.log");
+      Files.deleteIfExists(errLogDest.toPath());
+
       //create temp dir for student files
       tempDir.mkdir();
 
@@ -154,12 +158,26 @@ public abstract class JEMGrader
         jr.execute(true);
 
         // copy output.log to studentDir
-        File output = jr.getOutputLog();
+        File output = jr.getErrorLog();
         if(output.exists())
         {
           try
           {
             Files.copy(output.toPath(), outputLogDest.toPath());
+          }
+          catch(Exception e)
+          {
+            e.printStackTrace();
+          }
+        }
+
+        // copy error.log to studentDir
+        File err = jr.getErrorLog();
+        if(err.exists() && err.length() > 0)
+        {
+          try
+          {
+            Files.copy(err.toPath(), errLogDest.toPath());
           }
           catch(Exception e)
           {
