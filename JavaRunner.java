@@ -338,7 +338,6 @@ class Timer extends Thread
 
     running = true;
     start = System.currentTimeMillis();
-    int counter=0;
     while(running)
     {
       Thread.yield();

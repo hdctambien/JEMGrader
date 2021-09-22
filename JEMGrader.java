@@ -158,7 +158,7 @@ public abstract class JEMGrader
         jr.execute(true);
 
         // copy output.log to studentDir
-        File output = jr.getErrorLog();
+        File output = jr.getOutputLog();
         if(output.exists())
         {
           try

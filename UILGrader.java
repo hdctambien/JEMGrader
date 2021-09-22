@@ -47,13 +47,33 @@ public class UILGrader extends JEMGrader
     String result = "F";
 
     File output = jr.getOutputLog();
+    File err = jr.getErrorLog();
 
-    if(output.exists())
-    {
-      // Read test results from output file
-      String results = "";
+    if (err.exists()) {
       try
       {
+        List<String> errLines = Files.readAllLines(Paths.get(err.getPath()));
+        if (errLines.size() > 0) {
+          for(String line : errLines)
+          {
+            if (!line.trim().equals("")) {
+              result = "E";
+              break;
+            }//end if line is not empty
+          }//emd for
+        }//end if length>0
+      }
+      catch(IOException e)
+      {
+        e.printStackTrace();
+      }
+    }//end if err exists
+
+    if(!result.equals("E") && output.exists())
+    {
+      // Read test results from output file
+      try
+      {        
         List<String> lines = Files.readAllLines(Paths.get(output.getPath()));
         List<String> answerLines = Files.readAllLines(Paths.get(answer.getPath()));
 
@@ -72,7 +92,6 @@ public class UILGrader extends JEMGrader
           }
 
           // check that they have the same number of lines
-          result = "F";
           if(lines.size() == answerLines.size())
           {
             result = "P";
@@ -90,9 +109,8 @@ public class UILGrader extends JEMGrader
       catch(Exception e)
       {
         e.printStackTrace();
-      }
-
-    }
+      }//end catch
+    }//end if output exists
 
     // update output csv file
     this.testResult = result;
