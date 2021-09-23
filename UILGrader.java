@@ -138,12 +138,12 @@ public class UILGrader extends JEMGrader
 
   public void afterCompileError(JavaRunner jr, File dir)
   {
-    this.testResult = "C";
+    this.testResult = "C, -1";
   }
 
   public void afterTimeoutError(JavaRunner jr, File dir)
   {
-    this.testResult = "T";
+    this.testResult = "T, -1";
   }
 
   public void afterEverything(File dir)
