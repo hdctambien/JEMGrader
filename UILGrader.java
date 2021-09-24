@@ -2,15 +2,38 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 
+import jdk.dynalink.linker.support.SimpleLinkRequest;
+
 public class UILGrader extends JEMGrader
 {
+  private static final int IGNORE = -1;
+
+  public static final String PASS = "P";
+  public static final String FAIL = "F";
+  public static final String COMPILE_ERROR = "C";
+  public static final String ERROR = "E";
+  public static final String TIMEOUT = "T";
+
   private File answer;
   protected String testResult;
-  private int similarityThreshold = 100;
+  private int similarityThreshold = IGNORE;
+  private int maxTypos = IGNORE;
+
+  public boolean usingLevenshtein()
+  {
+    return maxTypos != IGNORE || similarityThreshold != IGNORE;
+  }
 
   public void setSimilarityThreshold(int threshold)
   {
     similarityThreshold = Math.max(0, Math.min(100, threshold));
+    maxTypos = IGNORE;
+  }
+
+  public void setMaximumTypos(int num)
+  {
+    maxTypos = Math.max(0, num);
+    similarityThreshold = IGNORE;
   }
 
   public void setPathToAnswer(String path)
@@ -63,7 +86,7 @@ public class UILGrader extends JEMGrader
           for(String line : errLines)
           {
             if (!line.trim().equals("")) {
-              result = "E";
+              result = ERROR;
               break;
             }//end if line is not empty
           }//emd for
@@ -101,30 +124,42 @@ public class UILGrader extends JEMGrader
           // check that they have the same number of lines
           if(lines.size() == answerLines.size())
           {
-            result = "P";
+            result = PASS;
             distance = 100;
             for(int i=0; i<lines.size(); i++)
             {
               if(!lines.get(i).equals(answerLines.get(i)))
               {
-                result = "F";
+                result = FAIL;
                 break;
               }//end if lines are not equal
             }//end for each line
           }//end if same number of lines
         }//end if there are any lines
 
-        if (!result.equals("P")) {
+        // If result did not pass because it is 100% correct,
+        // check if it meets the similarity threshold or max typos
+        if (!result.equals(PASS) && usingLevenshtein()) {
           String fullOutput = String.join("\n", lines);
           String fullAnswer = String.join("\n", answerLines);
 
           distance = calculateLevenshteinDistance(fullOutput, fullAnswer);
-          distance = 100 - (int)Math.round(1.0 * distance / fullAnswer.length() * 100);
-          // check if this meets the similarity threshold
-          if (distance >= similarityThreshold) {
-            result = "P";
-          }
-        }
+
+          // Check if this soltion is below the maxTypos allowed or similarity threshold
+          if (maxTypos != IGNORE) {
+            // Check if this has less than the max allowed typos
+            if (distance <= maxTypos) {
+              result = PASS;
+            }
+          }//end if check for typos
+          else if (similarityThreshold != IGNORE) {
+            // check if this meets the similarity threshold
+            distance = 100 - (int)Math.round(1.0 * distance / fullAnswer.length() * 100);
+            if (distance >= similarityThreshold) {
+              result = PASS;
+            }//end if distance greater than similarity threshold
+          }//end if check for similarity
+        }//end if result is not already passing and using levenshtein
       }//end try
       catch(Exception e)
       {
@@ -133,17 +168,33 @@ public class UILGrader extends JEMGrader
     }//end if output exists
 
     // update output csv file
-    this.testResult = result + ", " + distance;
+    // only include the (levenshtein) distance if it was used to calculate a passing grade
+    if (usingLevenshtein()) 
+    {
+      this.testResult = result + ", " + distance;
+    }
+    else
+    {
+      this.testResult = result;
+    }
   }
 
   public void afterCompileError(JavaRunner jr, File dir)
   {
-    this.testResult = "C, -1";
+    this.testResult = COMPILE_ERROR;
+    if (usingLevenshtein()) 
+    {
+      this.testResult += ", " + IGNORE;
+    }
   }
 
   public void afterTimeoutError(JavaRunner jr, File dir)
   {
-    this.testResult = "T, -1";
+    this.testResult = TIMEOUT;
+    if (usingLevenshtein()) 
+    {
+      this.testResult += ", " + IGNORE;
+    }
   }
 
   public void afterEverything(File dir)
@@ -187,7 +238,7 @@ public class UILGrader extends JEMGrader
   {
     UILGrader grader = new UILGrader();
 
-    String format = "Syntax: java UILGrader path/to/student/files path/to/answer/file.out test-filename [timeout] [Similarity Threshold]";
+    String format = "Syntax: java UILGrader path/to/student/files path/to/answer/file.out test-filename [timeout] [x% Similarity Threshold|x allowed typos]";
 
     if(args.length >= 3)
     {
@@ -223,12 +274,19 @@ public class UILGrader extends JEMGrader
     {
       try 
       {
-        grader.setSimilarityThreshold(Integer.parseInt(args[4]));
+        String arg = args[4];
+        if (arg.endsWith("%")) 
+        {
+          arg = arg.substring(0, arg.length()-1);
+          grader.setSimilarityThreshold(Integer.parseInt(arg)); 
+        }
+        else 
+        {
+          grader.setMaximumTypos(Integer.parseInt(arg));
+        }
       }
       catch (NumberFormatException e) 
       {
-        System.out.println(format);
-        System.out.println("Similarity Threshold argument must be an int");
         return;
       }
     }
