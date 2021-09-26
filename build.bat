@@ -1,1 +1,1 @@
-javac *.java
+javac -cp lib/picocli-4.6.0.jar *.java

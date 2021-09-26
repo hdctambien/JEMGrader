@@ -13,7 +13,7 @@ This project makes it easy to:
 
 ## Usage
 
-All you need to use this project are the jar files from the `/dist` folder, java installed on your machine, and access to the command line.
+All you need to use this project are the jar files from the `/dist` folder, java installed on your machine, and assess to the command line.
 
 ### JUnit Requirements
 
@@ -47,15 +47,35 @@ You can grade assignments by comparing their output to an expected output file.
 This method requires a text file that contains the expected output.
 
 ```
-/Path/To/Tests/LabName/Foo.out
+/Path/To/Tests/LabName/ExpectedOutput.out
 ```
 
 The `testPath` in this case would be `/Path/To/Tests/LabName`
 
+The `ExpectedOutput.out` file should be named the same as the testFile but with the extension `.out`
+
 If there are any other starter-code files that the student's project requires, you should put those in this folder as well.
 
 ```
-java -jar UILGrader.jar labPath testPath testFile [timeout] > grades.csv
+java -jar UILGrader.jar labPath testPath testFile > grades.csv
+
+Usage: UILGrader [-hVW] [-m=<maxTypos>] [-s=<similarityThreshold>]
+                 [-t=<timeout>] <pathToStudentFiles> <pathToTests>
+                 <fileToCompile>
+Grades assignments by comparing student output to expected output file.
+      <pathToStudentFiles>   The folder of student folders.
+      <pathToTests>          Path to test file.
+      <fileToCompile>        Student file with main method.
+  -h, --help                 Show this help message and exit.
+  -m, --mistakes=<maxTypos>  How many incorrect characters are allowed in
+                               solution
+  -s, --similarity=<similarityThreshold>
+                             What percent of characters in solution must be
+                               correct
+  -t, --timeout=<timeout>    How many millisecond to allow a program to run.
+                               Default 5000.
+  -V, --version              Print version information and exit.
+  -W, --whitespace           Ignore all white space when comparing output
 ```
 
 You can optionally set the `timeout` which limits how long to let student programs run (in milliseconds). This is used primarily to mitigate infinite-loops in student code but it will also catch algorithms with horrific performance. Default: 5000ms (5 seconds)
@@ -69,7 +89,7 @@ Each student file will be assigned one of the following grades:
 * C - Compilation Error
 * T - Program timed out
 
-> This program is named UILGrader because this is the method we use to access the correctness of the hands-on portion of UIL programming competitions.
+> This program is named UILGrader because this is the method we use to assess the correctness of the hands-on portion of UIL programming competitions.
 
 ## JUnit Testing
 
