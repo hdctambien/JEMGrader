@@ -126,7 +126,7 @@ public class UILGrader extends JEMGrader implements Callable<Integer> {
           // check that they have the same number of lines
           if (lines.size() == answerLines.size()) {
             result = PASS;
-            distance = 100;
+            distance = similarityThreshold != IGNORE ? 100 : 0;
             for (int i = 0; i < lines.size(); i++) {
               if (!lines.get(i).equals(answerLines.get(i))) {
                 result = FAIL;
