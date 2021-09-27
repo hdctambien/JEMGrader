@@ -26,7 +26,7 @@ public abstract class JEMGrader {
   @Parameters(index = "0", description = "The folder of student folders.")
   private String pathToStudentFiles;
 
-  @Parameters(index = "1", description = "Path to test file.")
+  @Parameters(index = "1", description = "Path to test/answer files.")
   private String pathToTests;
 
   @Parameters(index = "2", description = "Student file with main method.")
@@ -149,6 +149,7 @@ public abstract class JEMGrader {
       // copy files from studentDir
       for (File file : studentDir.listFiles()) {
         File dest = new File(tempDir.getPath() + File.separator + file.getName());
+        Files.deleteIfExists(dest.toPath()); // If student has a file with same name as a test file, use the student version
         Files.copy(file.toPath(), dest.toPath());
       }
 

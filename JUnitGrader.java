@@ -1,14 +1,20 @@
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.Callable;
 
-public class JUnitGrader extends JEMGrader
+import picocli.CommandLine;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.*;
+
+public class JUnitGrader extends JEMGrader implements Callable<Integer>
 {
   protected String passed;
   protected int failed;
   protected int percent;
 
   @Override
+  @Command(name = "JUnitGrader", mixinStandardHelpOptions = true, version = "JUnitGrader 1.0", description = "Grades assignments using JUnit tests.")
   public JavaRunner getJavaRunner(File dir)
   {
     JavaRunner jr = super.getJavaRunner(dir);
@@ -72,7 +78,6 @@ public class JUnitGrader extends JEMGrader
       String results = "";
       try
       {
-        //List<String> lines = Files.readAllLines(Paths.get(output.getPath()));
         List<String> lines = Files.readAllLines(output.toPath());
         if(lines.size() > 1)
         {
@@ -108,7 +113,6 @@ public class JUnitGrader extends JEMGrader
     this.passed = ""+numSuccess;
     this.failed = numFail;
     this.percent = passPercent;
-    //System.out.printf("%s, %d, %d, %d%n", dir.getName().replaceAll("_" , " "), numSuccess, numFail, passPercent);
   }
 
   public void afterCompileError(JavaRunner jr, File dir)
@@ -116,7 +120,6 @@ public class JUnitGrader extends JEMGrader
     this.passed = "C";
     this.failed = -1;
     this.percent = -1;
-    //System.out.printf("%s, C, %d, %d%n", dir.getName().replaceAll("_" , " "), 0, 0);
   }
 
   public void afterTimeoutError(JavaRunner jr, File dir)
@@ -124,7 +127,6 @@ public class JUnitGrader extends JEMGrader
     this.passed = "T";
     this.failed = -1;
     this.percent = -1;
-    //System.out.printf("%s, T, %d, %d%n", dir.getName().replaceAll("_" , " "), 0, 0);
   }
 
   public void afterEverything(File dir)
@@ -132,31 +134,14 @@ public class JUnitGrader extends JEMGrader
     printResult(dir);
   }
 
-  public static void main(String[] args)
-  {
-    JUnitGrader grader = new JUnitGrader();
+  @Override
+  public Integer call() throws Exception {
+    return go();
+  }
 
-    if(args.length >= 3)
-    {
-      grader.setPathToStudentFiles(args[0]);
-      grader.setPathToTests(args[1]);
-      grader.setFileToCompile(args[2]);
-    }
-    else
-    {
-      System.out.println("Syntax: java JUnitGrader path-to-student-files path-to-test test-file-name [timeout]");
-      return;
-    }
-
-    if(args.length >= 4)
-    {
-      grader.setTimeout(Integer.parseInt(args[3]));
-    }
-    else
-    {
-      grader.setTimeout(5000);
-    }
-
-    grader.go();
+  public static void main(String[] args) {
+    // https://picocli.info/
+    int exitCode = new CommandLine(new JUnitGrader()).execute(args);
+    System.exit(exitCode);
   }
 }
