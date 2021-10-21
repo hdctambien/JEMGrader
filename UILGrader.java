@@ -108,14 +108,14 @@ public class UILGrader extends JEMGrader implements Callable<Integer> {
             lines.set(i, lines.get(i).replaceAll("\\s+", ""));
           } // end remove whitespace from lines
 
-          // Remove entirely blank links (vertical whitespce)
+          // Remove entirely blank lines (vertical whitespce)
           lines.removeAll(Arrays.asList(""));
 
           for (int i = 0; i < answerLines.size(); i++) {
             answerLines.set(i, answerLines.get(i).replaceAll("\\s+", ""));
           } // end remove whitespace from answerLines
 
-          // Remove entirely blank links (vertical whitespce)
+          // Remove entirely blank lines (vertical whitespce)
           answerLines.removeAll(Arrays.asList(""));
 
         } // end if ignore whitespace
