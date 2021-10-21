@@ -107,9 +107,17 @@ public class UILGrader extends JEMGrader implements Callable<Integer> {
           for (int i = 0; i < lines.size(); i++) {
             lines.set(i, lines.get(i).replaceAll("\\s+", ""));
           } // end remove whitespace from lines
+
+          // Remove entirely blank links (vertical whitespce)
+          lines.removeAll(Arrays.asList(""));
+
           for (int i = 0; i < answerLines.size(); i++) {
             answerLines.set(i, answerLines.get(i).replaceAll("\\s+", ""));
           } // end remove whitespace from answerLines
+
+          // Remove entirely blank links (vertical whitespce)
+          answerLines.removeAll(Arrays.asList(""));
+
         } // end if ignore whitespace
 
         // check for empty files
