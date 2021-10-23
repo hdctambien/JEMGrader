@@ -45,6 +45,9 @@ public class JavaRunner implements Runnable
   private boolean threadLock;
   private boolean threadRunning;
 
+  // Identified if the last time the compile() method was called ended in a successful compiliation
+  private boolean wasLastCompileSuccessful;
+
   /** Constructor
    *  @param File path The folder of code to be compiled
    *  @param String filename The name of the file to be compiled/run (do not include extension)
@@ -122,6 +125,11 @@ public class JavaRunner implements Runnable
     return new File(pathTo(filename));
   }
 
+  public boolean wasLastCompileSuccessful()
+  {
+    return wasLastCompileSuccessful;
+  }
+
   /** Compile and run the specified program.
    *
    *  This method only blocks while compiling. The target program will run non-blockingly.
@@ -185,9 +193,6 @@ public class JavaRunner implements Runnable
 
     try
     {
-      Files.deleteIfExists(outputLog.toPath());
-      Files.deleteIfExists(errorLog.toPath());
-
       String cp = path;
       for(String cpFilename : classpathFiles)
       {
@@ -200,6 +205,10 @@ public class JavaRunner implements Runnable
 
       String cmd = "java -cp " + cp + " " + filename;
       proc = run.exec(cmd);
+
+      // Delete any output/error logs that the target program created on its own
+      Files.deleteIfExists(outputLog.toPath());
+      Files.deleteIfExists(errorLog.toPath());
 
       writeLines(outputLog.getPath(), proc.getInputStream());
       writeLines(errorLog.getPath(), proc.getErrorStream());
@@ -246,6 +255,7 @@ public class JavaRunner implements Runnable
       cp += File.pathSeparator + cpFilename;
     }
 
+    wasLastCompileSuccessful = false;
     try
     {
       Runtime run = Runtime.getRuntime();
@@ -256,14 +266,14 @@ public class JavaRunner implements Runnable
 
       proc.waitFor();
 
-      return proc.exitValue() == 0;
+      wasLastCompileSuccessful = proc.exitValue() == 0;
     }
     catch(Exception e)
     {
       e.printStackTrace();
     }
 
-    return false;
+    return wasLastCompileSuccessful;
   }
 
   /** Concatenate the file name with the path

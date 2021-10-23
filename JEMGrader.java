@@ -34,10 +34,11 @@ public abstract class JEMGrader {
   private int timeout = 5000;
 
   // Should student/test files be moved to a temp folder (true), or should the code just be run from the student folder?
-  private boolean useTempFolder = true;
+  @Option(names = { "--temp" }, description = "Should student & test files be copied to a temp folder before compiling & running (default: true")
+  private boolean skipTempFolder;
 
   public void setUseTempFolder(boolean useTempFolder) {
-    this.useTempFolder = useTempFolder;
+    this.skipTempFolder = !useTempFolder;
   }  
 
   public void setPathToStudentFiles(String path) {
@@ -71,10 +72,13 @@ public abstract class JEMGrader {
    * student folder 3. Deletes the temp folder
    */
   public int go() {
-    // Create a folder to store temp folders    
-    File tempFolderFolder = new File("tmp" + System.currentTimeMillis());
-    if (!tempFolderFolder.exists() || !tempFolderFolder.isDirectory()) {
-      tempFolderFolder.mkdir();
+    File tempFolderFolder = null;
+    if (!skipTempFolder) {
+      // Create a folder to store temp folders    
+      tempFolderFolder = new File("tmp" + System.currentTimeMillis());
+      if (!tempFolderFolder.exists() || !tempFolderFolder.isDirectory()) {
+        tempFolderFolder.mkdir();
+      }
     }
 
     File testDir = null;
@@ -92,7 +96,9 @@ public abstract class JEMGrader {
       }
     }
 
-    deleteDir(tempFolderFolder);
+    if (null != tempFolderFolder) {
+      deleteDir(tempFolderFolder);
+    }
 
     cleanup();
 
@@ -122,31 +128,90 @@ public abstract class JEMGrader {
    * the System.out stream
    */
   private void test(File studentDir, File testDir, File tempFolderFolder) {
+    if (null == tempFolderFolder) {
+      compileAndRun(studentDir, studentDir);
+    }
+    else {
+      copyAndCompileAndRun(studentDir, testDir, tempFolderFolder);
+    }
+  }
+
+  /**
+   * Create a temp folder inside tempFolderFolder to copy studentDir and testDir files into, then compile&run those files
+   * Copy the output log files from the temp folder into studentDir
+   * 
+   * @param studentDir
+   * @param testDir
+   * @param tempFolderFolder
+   */
+  public void copyAndCompileAndRun(File studentDir, File testDir, File tempFolderFolder)
+  {
     // Create temp folder to hold this student's files for compiling
     String tempDirName = tempFolderFolder.getPath() + File.separator + "temp-" + studentDir.getName() + "-"
-        + System.currentTimeMillis();
+    + System.currentTimeMillis();
     File tempDir = new File(tempDirName);
 
     try {
-      // create temp dir for student files
-      tempDir.mkdir();
+    // create temp dir for student files
+    tempDir.mkdir();
 
-      // copy files from testDir
-      if (null != testDir) {
-        for (File file : testDir.listFiles()) {
-          File dest = new File(tempDir.getPath() + File.separator + file.getName());
-          Files.copy(file.toPath(), dest.toPath());
-        }
+    // copy files from testDir
+    if (null != testDir) {
+    for (File file : testDir.listFiles()) {
+      File dest = new File(tempDir.getPath() + File.separator + file.getName());
+      Files.copy(file.toPath(), dest.toPath());
+    }
+    }
+
+    // copy files from studentDir
+    for (File file : studentDir.listFiles()) {
+    File dest = new File(tempDir.getPath() + File.separator + file.getName());
+    Files.deleteIfExists(dest.toPath()); // If student has a file with same name as a test file, use the student version
+    Files.copy(file.toPath(), dest.toPath());
+    }
+
+    // delete old compile log
+    File compileLogDest = new File(studentDir.getPath() + File.separator + "compile.log");
+    Files.deleteIfExists(compileLogDest.toPath());
+
+    // delete old output log
+    File outputLogDest = new File(studentDir.getPath() + File.separator + "output.log");
+    Files.deleteIfExists(outputLogDest.toPath());
+
+    // delete old error log
+    File errLogDest = new File(studentDir.getPath() + File.separator + "error.log");
+    Files.deleteIfExists(errLogDest.toPath());
+
+    JavaRunner jr = compileAndRun(tempDir, studentDir);
+
+    if (jr.wasLastCompileSuccessful()) {
+    // copy output.log to studentDir
+    File output = jr.getOutputLog();
+    if (output.exists()) {
+      try {
+        Files.copy(output.toPath(), outputLogDest.toPath());
+      } catch (Exception e) {
+        e.printStackTrace();
       }
+    }
 
-      // copy files from studentDir
-      for (File file : studentDir.listFiles()) {
-        File dest = new File(tempDir.getPath() + File.separator + file.getName());
-        Files.deleteIfExists(dest.toPath()); // If student has a file with same name as a test file, use the student version
-        Files.copy(file.toPath(), dest.toPath());
+    // copy error.log to studentDir
+    File err = jr.getErrorLog();
+    if (err.exists() && err.length() > 0) {
+      try {
+        Files.copy(err.toPath(), errLogDest.toPath());
+      } catch (Exception e) {
+        e.printStackTrace();
       }
-
-      compileAndRun(tempDir, studentDir);
+    }
+    }
+    else {
+      // copy compile.log to studentDir
+      File compileLog = jr.getCompileLog();
+      if (compileLog.exists()) {
+        Files.copy(compileLog.toPath(), compileLogDest.toPath());
+      }
+    }
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -157,84 +222,45 @@ public abstract class JEMGrader {
   }
 
   /**
-   * Compile and run the code in codeDir. Store output log files in logDir.
+   * Compile and run the code in runCodeDir.
    * 
-   * @param codeDir The folder that contains the Java code being executed
-   * @param logDir The folder that the output log files will be written to
+   * @param runCodeDir The folder that contains the Java code being executed (along with starter code, etc...)
+   * @param studentSourceDir The folder that contains the student's original source files
    * @throws IOException
    */
-  public void compileAndRun(File codeDir, File logDir) {
-    try {
-      // delete old compile log
-      File compileLogDest = new File(logDir.getPath() + File.separator + "compile.log");
-      Files.deleteIfExists(compileLogDest.toPath());
+  public JavaRunner compileAndRun(File runCodeDir, File studentSourceDir) {
+    // Compile Files
+    JavaRunner jr = getJavaRunner(runCodeDir);
 
-      // delete old output log
-      File outputLogDest = new File(logDir.getPath() + File.separator + "output.log");
-      Files.deleteIfExists(outputLogDest.toPath());
+    beforeCompile(jr, studentSourceDir);
 
-      // delete old error log
-      File errLogDest = new File(logDir.getPath() + File.separator + "error.log");
-      Files.deleteIfExists(errLogDest.toPath());
-
-      // Compile Files
-      JavaRunner jr = getJavaRunner(codeDir);
-
-      beforeCompile(jr, logDir);
-
-      boolean successfulCompile = jr.compile();
-
-      if (successfulCompile) {
-        // allow modifications to the JavaRunner before executing the code
-        beforeExecute(jr, logDir);
-
-        // Run the code!
-        jr.execute(true);
-
-        // copy output.log to studentDir
-        File output = jr.getOutputLog();
-        if (output.exists()) {
-          try {
-            Files.copy(output.toPath(), outputLogDest.toPath());
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-        }
-
-        // copy error.log to studentDir
-        File err = jr.getErrorLog();
-        if (err.exists() && err.length() > 0) {
-          try {
-            Files.copy(err.toPath(), errLogDest.toPath());
-          } catch (Exception e) {
-            e.printStackTrace();
-          }
-        }
-
-        // process results
-        if (jr.timedOut()) {
-          afterTimeoutError(jr, logDir);
-        } else {
-          afterExecute(jr, logDir);
-        }
-      } else // compile error
-      {
-        // copy compile.log to studentDir
-        File compileLog = jr.getCompileLog();
-        if (compileLog.exists()) {
-          Files.copy(compileLog.toPath(), compileLogDest.toPath());
-        }
-
-        afterCompileError(jr, logDir);
-      }
-    }
-    catch(IOException e)
+    boolean successfulCompile = jr.compile();
+    
+    if (successfulCompile) 
     {
-      e.printStackTrace();
+      // allow modifications to the JavaRunner before executing the code
+      beforeExecute(jr, studentSourceDir);
+
+      // Run the code!
+      jr.execute(true);
+
+      // process results
+      if (jr.timedOut()) 
+      {
+        afterTimeoutError(jr, studentSourceDir);
+      } 
+      else {
+        afterExecute(jr, studentSourceDir);
+      }
+    } 
+    else // compile error
+    {
+      afterCompileError(jr, studentSourceDir);
     }
-    finally {
-      afterEverything(logDir);
-    }
+
+    afterEverything(studentSourceDir);
+
+    return jr;
   }
 
   /** Recusively deletes the specified folder */
