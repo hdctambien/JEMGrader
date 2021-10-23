@@ -1,8 +1,6 @@
 import java.io.*;
 import java.nio.file.*;
 
-import picocli.CommandLine;
-import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.*;
 
 public abstract class JEMGrader {
@@ -35,6 +33,13 @@ public abstract class JEMGrader {
   @Option(names = { "-t", "--timeout" }, description = "How many millisecond to allow a program to run. Default 5000.")
   private int timeout = 5000;
 
+  // Should student/test files be moved to a temp folder (true), or should the code just be run from the student folder?
+  private boolean useTempFolder = true;
+
+  public void setUseTempFolder(boolean useTempFolder) {
+    this.useTempFolder = useTempFolder;
+  }  
+
   public void setPathToStudentFiles(String path) {
     pathToStudentFiles = path;
   }
@@ -66,7 +71,7 @@ public abstract class JEMGrader {
    * student folder 3. Deletes the temp folder
    */
   public int go() {
-    // Create a folder to store temp folders
+    // Create a folder to store temp folders    
     File tempFolderFolder = new File("tmp" + System.currentTimeMillis());
     if (!tempFolderFolder.exists() || !tempFolderFolder.isDirectory()) {
       tempFolderFolder.mkdir();
@@ -123,18 +128,6 @@ public abstract class JEMGrader {
     File tempDir = new File(tempDirName);
 
     try {
-      // delete old compile log
-      File compileLogDest = new File(studentDir.getPath() + File.separator + "compile.log");
-      Files.deleteIfExists(compileLogDest.toPath());
-
-      // delete old output log
-      File outputLogDest = new File(studentDir.getPath() + File.separator + "output.log");
-      Files.deleteIfExists(outputLogDest.toPath());
-
-      // delete old error log
-      File errLogDest = new File(studentDir.getPath() + File.separator + "error.log");
-      Files.deleteIfExists(errLogDest.toPath());
-
       // create temp dir for student files
       tempDir.mkdir();
 
@@ -153,16 +146,47 @@ public abstract class JEMGrader {
         Files.copy(file.toPath(), dest.toPath());
       }
 
-      // Compile Files
-      JavaRunner jr = getJavaRunner(tempDir);
+      compileAndRun(tempDir, studentDir);
 
-      beforeCompile(jr, studentDir);
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      // delete temp folder
+      deleteDir(tempDir);
+    }
+  }
+
+  /**
+   * Compile and run the code in codeDir. Store output log files in logDir.
+   * 
+   * @param codeDir The folder that contains the Java code being executed
+   * @param logDir The folder that the output log files will be written to
+   * @throws IOException
+   */
+  public void compileAndRun(File codeDir, File logDir) {
+    try {
+      // delete old compile log
+      File compileLogDest = new File(logDir.getPath() + File.separator + "compile.log");
+      Files.deleteIfExists(compileLogDest.toPath());
+
+      // delete old output log
+      File outputLogDest = new File(logDir.getPath() + File.separator + "output.log");
+      Files.deleteIfExists(outputLogDest.toPath());
+
+      // delete old error log
+      File errLogDest = new File(logDir.getPath() + File.separator + "error.log");
+      Files.deleteIfExists(errLogDest.toPath());
+
+      // Compile Files
+      JavaRunner jr = getJavaRunner(codeDir);
+
+      beforeCompile(jr, logDir);
 
       boolean successfulCompile = jr.compile();
 
       if (successfulCompile) {
         // allow modifications to the JavaRunner before executing the code
-        beforeExecute(jr, studentDir);
+        beforeExecute(jr, logDir);
 
         // Run the code!
         jr.execute(true);
@@ -189,9 +213,9 @@ public abstract class JEMGrader {
 
         // process results
         if (jr.timedOut()) {
-          afterTimeoutError(jr, studentDir);
+          afterTimeoutError(jr, logDir);
         } else {
-          afterExecute(jr, studentDir);
+          afterExecute(jr, logDir);
         }
       } else // compile error
       {
@@ -201,15 +225,15 @@ public abstract class JEMGrader {
           Files.copy(compileLog.toPath(), compileLogDest.toPath());
         }
 
-        afterCompileError(jr, studentDir);
+        afterCompileError(jr, logDir);
       }
-    } catch (Exception e) {
+    }
+    catch(IOException e)
+    {
       e.printStackTrace();
-    } finally {
-      // delete temp folder
-      deleteDir(tempDir);
-
-      afterEverything(studentDir);
+    }
+    finally {
+      afterEverything(logDir);
     }
   }
 
