@@ -34,7 +34,7 @@ public abstract class JEMGrader {
   private int timeout = 5000;
 
   // Should student/test files be moved to a temp folder (true), or should the code just be run from the student folder?
-  @Option(names = { "--temp" }, description = "Should student & test files be copied to a temp folder before compiling & running (default: true")
+  @Option(names = { "--inplace" }, description = "Should student & test files be copied to a temp folder before compiling & running (default: true")
   private boolean skipTempFolder;
 
   public void setUseTempFolder(boolean useTempFolder) {
@@ -235,7 +235,7 @@ public abstract class JEMGrader {
     beforeCompile(jr, studentSourceDir);
 
     boolean successfulCompile = jr.compile();
-    
+
     if (successfulCompile) 
     {
       // allow modifications to the JavaRunner before executing the code
