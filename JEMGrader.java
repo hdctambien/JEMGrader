@@ -33,6 +33,9 @@ public abstract class JEMGrader {
   @Option(names = { "-t", "--timeout" }, description = "How many millisecond to allow a program to run. Default 5000.")
   private int timeout = 5000;
 
+  @Option(names = { "-p", "--policy" }, description = "Path to policy file to apply to code being graded.")
+  private String policy = null;
+
   // Should student/test files be moved to a temp folder (true), or should the code just be run from the student folder?
   @Option(names = { "--inplace" }, description = "Should student & test files be copied to a temp folder before compiling & running (default: true")
   private boolean skipTempFolder;
@@ -90,10 +93,16 @@ public abstract class JEMGrader {
 
     File labDir = new File(pathToStudentFiles);
     File[] studentDirs = labDir.listFiles();
-    for (File studentDir : studentDirs) {
-      if (studentDir.isDirectory()) {
-        test(studentDir, testDir, tempFolderFolder);
+    if (null != studentDirs) {
+      for (File studentDir : studentDirs) {
+        if (studentDir.isDirectory()) {
+          test(studentDir, testDir, tempFolderFolder);
+        }
       }
+    }
+    else {
+      System.out.println("No student folders found");
+      //System.out.println("No student folders found in " + pathToStudentFiles);
     }
 
     if (null != tempFolderFolder) {
@@ -111,7 +120,7 @@ public abstract class JEMGrader {
    * This method should be overloaded if you need to add files to the classpath
    */
   public JavaRunner getJavaRunner(File dir) {
-    return new JavaRunner(dir, fileToCompile, timeout);
+    return new JavaRunner(dir, fileToCompile, timeout, policy);
   }
 
   /**

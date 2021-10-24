@@ -1,1 +1,1 @@
-java UILGrader -W Students/TestLab Tests/TestLab Foo
+java UILGrader -W --policy "c:/dev/JEMGrader/strict.policy" Students/TestLab Tests/TestLab Foo

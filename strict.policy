@@ -1,0 +1,8 @@
+// Strict security policy that will only give the minimum needed.
+// https://docs.oracle.com/javase/8/docs/technotes/guides/security/permissions.html
+// https://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html
+
+grant {
+  // You can read user.dir
+  permission java.io.FilePermission  ".", "read";
+};

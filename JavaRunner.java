@@ -41,6 +41,7 @@ public class JavaRunner implements Runnable
   private File errorLog;
   private File outputLog;
   private boolean timedout;
+  private String policy;
 
   private boolean threadLock;
   private boolean threadRunning;
@@ -53,9 +54,9 @@ public class JavaRunner implements Runnable
    *  @param String filename The name of the file to be compiled/run (do not include extension)
    *  @param int timeout The number of milliseconds to wait for this program to run before timing out. Use 0 for no timeout.
    */
-  public JavaRunner(File path, String filename, int timeout)
+  public JavaRunner(File path, String filename, int timeout, String policy)
   {
-    this(path.getPath(), filename, timeout);
+    this(path.getPath(), filename, timeout, policy);
   }
 
   /** Constructor
@@ -63,12 +64,13 @@ public class JavaRunner implements Runnable
    *  @param String filename The name of the file to be compiled/run (do not include extension)
    *  @param int timeout The number of milliseconds to wait for this program to run before timing out. Use 0 for no timeout.
    */
-  public JavaRunner(String path, String filename, int timeout)
+  public JavaRunner(String path, String filename, int timeout, String policy)
   {
     this.path = path + File.separator;
     this.filename = filename;
     this.timer = new Timer(this, timeout);
     this.limit = timeout;
+    this.policy = policy;
     this.classpathFiles = new ArrayList<>();
 
     this.compileLog = new File(pathTo("compile.log"));
@@ -83,6 +85,11 @@ public class JavaRunner implements Runnable
   public void setFilename(String filename)
   {
     this.filename = filename;
+  }
+
+  public void setPolicy(String policy)
+  {
+    this.policy = policy;
   }
 
   public File getCompileLog()
@@ -203,7 +210,12 @@ public class JavaRunner implements Runnable
 
       timer.start();
 
-      String cmd = "java -cp " + cp + " " + filename;
+      String policy_flag = "";
+      if (null != this.policy) {
+        policy_flag="-Djava.security.manager -Djava.security.policy=\""+this.policy+"\"";
+      }
+
+      String cmd = "java -cp " + cp + " " + policy_flag + " " + filename;
       proc = run.exec(cmd);
 
       // Delete any output/error logs that the target program created on its own
